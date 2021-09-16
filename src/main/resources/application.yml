@@ -1,0 +1,38 @@
+server:
+  port: 8090
+spring:
+  shardingsphere:
+    # 展示修改以后的sql语句
+    props:
+      sql-show: true
+    datasource:
+      common:
+        driver-class-name: org.postgresql.Driver
+        type: com.alibaba.druid.pool.DruidDataSource
+      names: db0
+      db0:
+        url: jdbc:postgresql://192.168.1.56:5433/sharding_test?&ssl=false&stringtype=unspecified
+        username: postgres
+        password: 'jetlinks'
+    rules:
+      sharding:
+        key-generators:
+          # 此处必须要配置，否则会导致报错，因为shardingsphere-jdbc-core-spring-boot-starter需要加载此项配置，官网的demo例子有错
+          snowflake:
+            type: SNOWFLAKE
+            props:
+              worker-id: 123
+        sharding-algorithms:
+          table-inline:
+            type: INLINE
+            props:
+              # 此处写法必须是t_order$->{order_id % 4}不能写为t_order${order_id % 4}，yml不认这种写法
+              algorithm-expression: t_order$->{order_id % 4}
+        tables:
+          t_order:
+            # 配置t_order的分表的规则
+            actual-data-nodes: db0.t_order$->{0..3}
+            table-strategy:
+              standard:
+                sharding-column: order_id
+                sharding-algorithm-name: table-inline
